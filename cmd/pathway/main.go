@@ -215,8 +215,8 @@ func (b *built) transforms(names []string) error {
 // serveData brings up the customer-facing listeners: :443 with the fleet certificate, and :80 as
 // either a redirect or, on a fleet with no zone, the whole surface in the clear.
 func serveData(lifecycle *gatewayhttp.Lifecycle, server *gatewayhttp.Server, cfg config.Config, chain []string) error {
-	// Handlers, not DataHandler: the TLS listener carries /healthz, /grove-admin and the scrape as
-	// well as /v1, each under the name it belongs to.
+	// Handlers, not DataHandler: the TLS listener carries /healthz and /grove-admin as well as
+	// /v1, each under the name it belongs to.
 	handler, err := server.Handlers(cfg, chain)
 	if err != nil {
 		return err

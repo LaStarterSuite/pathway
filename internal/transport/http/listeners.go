@@ -10,7 +10,7 @@ import (
 
 // Host routing needs no code beyond ServeMux: a Go 1.22 pattern takes a host, so the two nginx
 // server blocks become two patterns on one mux. Customer traffic answers on the shared GeoDNS name;
-// the admin plane and the scrape answer on this box's own name, which reaches no other.
+// the admin plane answers on this box's own name, which reaches no other.
 
 // Handlers builds the mux for the TLS listener.
 func (s *Server) Handlers(cfg config.Config, chain []string) (http.Handler, error) {
@@ -34,30 +34,12 @@ func (s *Server) Handlers(cfg config.Config, chain []string) (http.Handler, erro
 		mux.HandleFunc(cfg.PublicHost+"/healthz", s.Health)
 	}
 	// The bare patterns are the default for anything that arrived without a matching name — a
-	// scrape that connects to the IP and sends no SNI, or a fleet with no zone where both planes
-	// share one name.
+	// health check that connects to the IP and sends no SNI, or a fleet with no zone where both
+	// planes share one name.
 	mux.Handle("/grove-admin/", admin)
 	mux.Handle("/", data)
 
-	if metrics, err := newMetricsProxy(cfg.HtpasswdPath, cfg.NodeExporterURL); err == nil {
-		if !cfg.ServesTLS() {
-			// Said once, loudly, because it is the cost of not carrying a self-signed certificate:
-			// the scrape presents its password on every request, and with no TLS that is in the
-			// clear every 15 seconds. The fleet wildcard is what fixes it — this box has no zone.
-			s.log.Warn("serving /metrics/node without TLS — the scrape credential is on the wire in "+
-				"the clear on every poll; set a Fleet Zone so this box gets the wildcard",
-				"htpasswd", cfg.HtpasswdPath)
-		}
-		mux.Handle("/metrics/node", metrics)
-		if cfg.SelfHost != "" {
-			mux.Handle(cfg.SelfHost+"/metrics/node", metrics)
-		}
-	} else {
-		// Not fatal: a box with no htpasswd yet still serves traffic, and the scrape shows up as a
-		// down target, which is the signal that matters.
-		s.log.Warn("metrics scrape not mounted", "htpasswd", cfg.HtpasswdPath, "err", err)
-	}
-	// Everything on this listener logs — health probes, admin calls, scrapes, host-mismatch 404s.
+	// Everything on this listener logs — health probes, admin calls, host-mismatch 404s.
 	// The data handler's own wrap steps aside, so its requests still log exactly once.
 	return s.logged(mux), nil
 }

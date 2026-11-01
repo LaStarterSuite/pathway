@@ -9,7 +9,6 @@ require (
 	github.com/cloudflare/tableflip v1.2.3
 	github.com/google/uuid v1.6.0
 	github.com/redis/go-redis/v9 v9.7.0
-	golang.org/x/crypto v0.31.0
 )
 
 require (

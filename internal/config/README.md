@@ -15,10 +15,8 @@ Split by **lifetime**, and disjoint — nothing appears in both halves.
 | `GROVE_REDIS_PASSWORD` | the shared store's `requirepass`; blank = no AUTH |
 | `GROVE_LISTEN_HTTP` / `GROVE_LISTEN_HTTPS` | the data path; at least one is required |
 | `GROVE_PUBLIC_HOST` | the shared name customer traffic arrives on |
-| `GROVE_SELF_HOST` | this box's own name — carries `/grove-admin` and the scrape |
+| `GROVE_SELF_HOST` | this box's own name — carries `/grove-admin` |
 | `GROVE_TLS_CERT` / `GROVE_TLS_KEY` | fleet wildcard; hot-reloaded from disk on change |
-| `GROVE_HTPASSWD` | bcrypt htpasswd for `/metrics/node` |
-| `GROVE_NODE_EXPORTER_URL` | default `http://127.0.0.1:9100/metrics` |
 | `GROVE_ACCESS_LOG` | file for the per-request line; blank → stdout |
 | `GROVE_ERROR_LOG` | file mirroring Warn and above out of the process log; blank → stdout only |
 | `GROVE_PAYLOAD_LOG` | file for prompts and outputs of users flagged `log_payloads`; customer content, so its own file and retention. Blank turns `payloadlog` off box-wide |

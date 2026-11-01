@@ -128,7 +128,7 @@ func (s *Server) DataHandler(chain []string) (http.Handler, error) {
 	}
 
 	// The routes the mux answers itself still pass drain, so a box in maintenance refuses every
-	// customer path the way the chain does. /grove-admin, /healthz and the scrape are not on this mux.
+	// customer path the way the chain does. /grove-admin and /healthz are not on this mux.
 	drain, err := middleware.Chain(s.deps, []string{"drain"})
 	if err != nil {
 		return nil, err
