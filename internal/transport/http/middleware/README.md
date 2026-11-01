@@ -178,7 +178,8 @@ its last), `chunks` (body reads that brought bytes: one per upstream flush, abou
 a stream, a few on a unary answer) and `gap_max` (the longest silence between two of them, ms). A
 stream that stalled short of the read timeout shows `gap_max` near `stream` with few `chunks`; one
 the timeout cut shows `gap_max` at about the timeout with `cut=upstream_idle`. The group is absent
-when nothing was dialled, and `latency.upstream_ms` is 0.
+when nothing was dialled, and `latency.upstream_ms` is 0. A line that ran no stage and dialled
+nothing — a health probe, an admin call — carries none of the three.
 
 A caller tags its own requests with `X-Grove-Metadata: app=hrms, trace=7f3a-91`, and the tags land
 on the access line as `meta: {"app": "hrms", "trace": "7f3a-91"}`: which app spent a key several

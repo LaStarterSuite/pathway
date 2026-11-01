@@ -1,11 +1,15 @@
 package http
 
 import (
+	"bytes"
+	"log/slog"
 	"math"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/frappe/pathway/internal/config"
 )
 
 func group(t *testing.T, line map[string]any, name string) map[string]any {
@@ -156,5 +160,26 @@ func TestAGatewayAnsweredLineHasNoHop(t *testing.T) {
 	}
 	if _, present := line["hop"]; present {
 		t.Errorf("hop = %v on a request the gateway answered", line["hop"])
+	}
+}
+
+// A line the listener answered outside the chain — a health probe — ran no stage and dialled
+// nothing, so it says nothing of where the time went: no groups rather than zeros, every 15s.
+func TestAProbeLineHasNoTiming(t *testing.T) {
+	f := newFixture(t, jsonEngine(`{}`))
+	access := &bytes.Buffer{}
+	listener, err := newServer(t, f.store, config.Config{}, 0, func(s *Services) {
+		s.Access = slog.New(slog.NewJSONHandler(access, nil))
+	}).Handlers(config.Config{}, nil)
+	if err != nil {
+		t.Fatalf("Handlers: %v", err)
+	}
+	listener.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/healthz", nil))
+
+	line := jsonLine(t, access)
+	for _, group := range []string{"latency", "gateway", "hop"} {
+		if _, present := line[group]; present {
+			t.Errorf("%s = %v on a probe that ran no stage", group, line[group])
+		}
 	}
 }
