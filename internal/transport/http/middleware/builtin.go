@@ -708,6 +708,12 @@ var gatewayPhases = []string{"ingressauth", "pick", "auth", "quota", "body", "ro
 // line and the attempt's on its own; clientFirstByte is zero on an attempt line, whose answer the
 // client never received, which leaves `ttfb_ms` and `respond` off it.
 func timing(state *State, started, clientFirstByte time.Time) []slog.Attr {
+	// Only the handler was reached below accesslog — the listener's own routes: a probe, an admin
+	// call, a host-mismatch 404 — and nothing was dialled: no time to account for, so no groups
+	// rather than zeros on every probe. A line through the data chain always has drain's mark.
+	if _, bare := state.Entered["handler"]; bare && len(state.Entered) == 1 && state.Outcome.Hop == nil {
+		return nil
+	}
 	now := time.Now()
 	total := now.Sub(started)
 	var legs proxy.Legs
