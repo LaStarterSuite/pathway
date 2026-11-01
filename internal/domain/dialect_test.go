@@ -10,7 +10,7 @@ func TestPathDialect(t *testing.T) {
 		"/v1/chat/completions": DialectOpenAI,
 		"/v1/messages":         DialectAnthropic,
 		"/v1/messages/":        DialectAnthropic,
-		"/v1/embeddings":       "",
+		"/v1/embeddings":       DialectOpenAI,
 		"/":                    "",
 	} {
 		if got := PathDialect(path); got != want {

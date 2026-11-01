@@ -16,13 +16,13 @@ var endpointOutputs = map[string]string{
 	"/v1/audio/translations":   "transcription",
 }
 
-// ServesRoute reports whether this route answers on this surface and path — what the model gives
-// when it is an engine of ours, and the pushed dialect when it is a vendor. A provider is a closed
-// set where an engine is not: anything but its dialect's own paths is a 404 from it, after a
-// round trip we paid for — so it is our 404 instead.
+// ServesRoute reports whether this route answers on this surface and path — what the model gives,
+// and for a vendor the pushed dialect too. A provider is a closed set where an engine is not:
+// anything but its dialect's own paths is a 404 from it, after a round trip we paid for — so it
+// is our 404 instead, and so is a path its model does not give.
 func ServesRoute(r Route, dialect, path string) bool {
 	if r.IsProvider() {
-		return PathDialect(path) == dialect && r.SpeaksDialect(dialect)
+		return PathDialect(path) == dialect && r.SpeaksDialect(dialect) && Serves(r.OutputModalities, path)
 	}
 	return Serves(r.OutputModalities, path)
 }

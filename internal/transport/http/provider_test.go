@@ -171,7 +171,7 @@ func TestAProviderStreamSpeaksTheGroveModelIDInEveryFrame(t *testing.T) {
 // The point of gating locally: a vendor's surfaces are a closed set, so dialling anything
 // outside its dialect buys a 404 we could have given ourselves, plus a round trip on a paid link.
 func TestAPathTheVendorDoesNotServeNeverLeavesTheGateway(t *testing.T) {
-	for _, path := range []string{"/openai/v1/chat/completions", "/openai/v1/embeddings", "/openai/v1/rerank", "/openai/v1/completions"} {
+	for _, path := range []string{"/openai/v1/chat/completions", "/openai/v1/rerank", "/openai/v1/completions"} {
 		t.Run(path, func(t *testing.T) {
 			f := providerFixture(t)
 			resp := f.post(path, `{"model":"anthropic/claude-4-5"}`)
@@ -236,9 +236,9 @@ func TestADualFrontVendorRoutesEachSurfaceToItsOwnFront(t *testing.T) {
 	f := newFixture(t, jsonEngine(`{`+usageObject+`}`))
 	f.store.Groups["acme"] = domain.GroupRecord{Models: domain.ModelSet("qwen3-4b,kimi/k2")}
 	f.store.Routes["kimi/k2"] = []domain.Route{
-		{EngineURL: f.engine.URL + "/root", InternalKey: "kimi-key", Healthy: true,
+		{EngineURL: f.engine.URL + "/root", InternalKey: "kimi-key", Healthy: true, OutputModalities: []string{"text"},
 			Vendor: "kimi", Kind: "provider", Dialect: "openai", UpstreamModel: "k2"},
-		{EngineURL: f.engine.URL + "/anthropic", InternalKey: "kimi-key", Healthy: true,
+		{EngineURL: f.engine.URL + "/anthropic", InternalKey: "kimi-key", Healthy: true, OutputModalities: []string{"text"},
 			Vendor: "kimi", Kind: "provider", Dialect: "anthropic", UpstreamModel: "k2"},
 	}
 
@@ -262,6 +262,48 @@ func TestADualFrontVendorRoutesEachSurfaceToItsOwnFront(t *testing.T) {
 	}
 	if f.seen.path != "" {
 		t.Errorf("a path no front serves was dialled anyway: %s", f.seen.path)
+	}
+}
+
+// A vendor's embedding model answers on the OpenAI surface alone, and its usage is prompt tokens
+// only: the pricing names that one counter, and the cost is it at its rate. Chat on it is our 404.
+func TestAVendorEmbeddingModelIsDialledAndPricedOnItsPromptTokens(t *testing.T) {
+	f := newFixture(t, jsonEngine(`{"object":"list","data":[{"object":"embedding","index":0,"embedding":[0.1,0.2]}],`+
+		`"model":"text-embedding-3-small","usage":{"prompt_tokens":5,"total_tokens":5}}`))
+	f.store.Groups["acme"] = domain.GroupRecord{Models: domain.ModelSet("openai/text-embedding-3-small")}
+	f.store.Routes["openai/text-embedding-3-small"] = []domain.Route{{
+		EngineURL: f.engine.URL, InternalKey: "openai-key", Healthy: true, OutputModalities: []string{"embeddings"},
+		Vendor: "openai", Kind: "provider", Dialect: "openai", UpstreamModel: "text-embedding-3-small",
+		Pricing: &domain.Pricing{ID: "mp-embed", Rates: map[string]int64{"prompt_tokens": 20_000_000}, Counters: counters(t)},
+	}}
+
+	resp := f.post("/openai/v1/embeddings", `{"model":"openai/text-embedding-3-small","input":"hi"}`)
+	if resp.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", resp.Code, resp.Body)
+	}
+	if f.seen.path != "/v1/embeddings" || f.seen.authorization != "Bearer openai-key" {
+		t.Errorf("dialled %q with %q, want /v1/embeddings with the vendor's own key", f.seen.path, f.seen.authorization)
+	}
+	var body map[string]any
+	if json.Unmarshal(f.seen.body, &body) != nil || body["model"] != "text-embedding-3-small" {
+		t.Errorf("body sent %s, want the upstream id", f.seen.body)
+	}
+	usage := f.store.UsageOf("abc123")
+	for field, want := range map[string]int64{
+		"request_count": 1, "prompt_tokens": 5, "total_tokens": 5, "completion_tokens": 0,
+		"p:mp-embed:prompt_tokens": 5, "p:mp-embed:cost": 100,
+	} {
+		if usage[field] != want {
+			t.Errorf("usage[%s] = %d, want %d", field, usage[field], want)
+		}
+	}
+
+	*f.seen = engineRecord{}
+	if resp := f.post("/openai/v1/chat/completions", `{"model":"openai/text-embedding-3-small"}`); resp.Code != http.StatusNotFound {
+		t.Errorf("chat on a pooling model: status = %d, want 404", resp.Code)
+	}
+	if f.seen.path != "" {
+		t.Errorf("a pooling model was dialled for chat: %s", f.seen.path)
 	}
 }
 
