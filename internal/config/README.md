@@ -15,10 +15,8 @@ Split by **lifetime**, and disjoint — nothing appears in both halves.
 | `GROVE_REDIS_PASSWORD` | the shared store's `requirepass`; blank = no AUTH |
 | `GROVE_LISTEN_HTTP` / `GROVE_LISTEN_HTTPS` | the data path; at least one is required |
 | `GROVE_PUBLIC_HOST` | the shared name customer traffic arrives on |
-| `GROVE_SELF_HOST` | this box's own name — carries `/grove-admin` and the scrape |
+| `GROVE_SELF_HOST` | this box's own name — carries `/grove-admin` |
 | `GROVE_TLS_CERT` / `GROVE_TLS_KEY` | fleet wildcard; hot-reloaded from disk on change |
-| `GROVE_HTPASSWD` | bcrypt htpasswd for `/metrics/node` |
-| `GROVE_NODE_EXPORTER_URL` | default `http://127.0.0.1:9100/metrics` |
 | `GROVE_ACCESS_LOG` | file for the per-request line; blank → stdout |
 | `GROVE_ERROR_LOG` | file mirroring Warn and above out of the process log; blank → stdout only |
 | `GROVE_PAYLOAD_LOG` | file for prompts and outputs of users flagged `log_payloads`; customer content, so its own file and retention. Blank turns `payloadlog` off box-wide |
@@ -59,7 +57,7 @@ believes they turned.
 headers, and every wait for more of its body after them. A model that thinks for ten minutes before
 its first token needs it raised; a stream that talks for an hour does not. Running out before the
 headers is a **504** `upstream timed out`; after them, an event stream ends in an error event (see
-[Streaming](../transport/http/proxy/README.md#streaming)).
+[Streaming](../transport/http/proxy/README.md#streaming)) and the access line says `cut=upstream_idle`.
 
 `synthetic_session_ttl` is the one worth knowing. `0s` balances every caller that names no session
 of its own; `30m` pins each API key to one engine, which is what a single-placement fleet always

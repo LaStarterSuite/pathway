@@ -34,15 +34,12 @@ type Config struct {
 	ListenHTTP  string
 	ListenHTTPS string
 	// PublicHost is the shared name customer traffic arrives on; SelfHost is this box's own name,
-	// which the control plane pushes to and the scrape asks for. Blank means "answer on any name",
+	// which the control plane pushes to. Blank means "answer on any name",
 	// which is what a fleet with no zone always did.
 	PublicHost  string
 	SelfHost    string
 	TLSCertPath string
 	TLSKeyPath  string
-
-	HtpasswdPath    string
-	NodeExporterURL string
 
 	AccessLogPath  string
 	ErrorLogPath   string
@@ -78,9 +75,6 @@ func Load() (Config, error) {
 		SelfHost:    strings.TrimSpace(os.Getenv("GROVE_SELF_HOST")),
 		TLSCertPath: strings.TrimSpace(os.Getenv("GROVE_TLS_CERT")),
 		TLSKeyPath:  strings.TrimSpace(os.Getenv("GROVE_TLS_KEY")),
-
-		HtpasswdPath:    env("GROVE_HTPASSWD", "/etc/grove/nginx/metrics.htpasswd"),
-		NodeExporterURL: env("GROVE_NODE_EXPORTER_URL", "http://127.0.0.1:9100/metrics"),
 
 		AccessLogPath:  strings.TrimSpace(os.Getenv("GROVE_ACCESS_LOG")),
 		ErrorLogPath:   strings.TrimSpace(os.Getenv("GROVE_ERROR_LOG")),
