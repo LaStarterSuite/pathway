@@ -17,6 +17,7 @@ const (
 // surface for a dialect (say /v1/responses for OpenAI) is a row here.
 var vendorPaths = map[string]string{
 	"/v1/chat/completions": DialectOpenAI,
+	"/v1/embeddings":       DialectOpenAI,
 	"/v1/messages":         DialectAnthropic,
 }
 

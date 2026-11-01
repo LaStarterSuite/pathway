@@ -154,6 +154,8 @@ func TestServesRoute(t *testing.T) {
 	openaiVendor := Route{Kind: "provider", OutputModalities: []string{"text"}, Dialect: DialectOpenAI}
 	blankVendor := Route{Kind: "provider", OutputModalities: []string{"text"}}
 	engine := Route{Kind: "direct", OutputModalities: []string{"text"}}
+	poolingVendor := Route{Kind: "provider", OutputModalities: []string{"embeddings"}, Dialect: DialectOpenAI}
+	unsaidVendor := Route{Kind: "provider", Dialect: DialectOpenAI}
 
 	for _, c := range []struct {
 		name    string
@@ -167,13 +169,20 @@ func TestServesRoute(t *testing.T) {
 		{"vendor", vendor, DialectAnthropic, "/v1/messages/count_tokens", false, "no surface for it"},
 		{"vendor", vendor, DialectAnthropic, "/v1/messages/", true, "a trailing slash is the same endpoint"},
 		{"vendor", vendor, DialectOpenAI, "/v1/chat/completions", false, "nothing translates"},
-		{"vendor", vendor, DialectOpenAI, "/v1/embeddings", false, ""},
+		{"vendor", vendor, DialectOpenAI, "/v1/embeddings", false, "nothing translates"},
 		{"vendor", vendor, DialectOpenAI, "/v1/rerank", false, "unclaimed is allowed on an engine and refused on a vendor"},
 		{"vendor", vendor, DialectOpenAI, "/tokenize", false, ""},
 
 		{"openai-vendor", openaiVendor, DialectOpenAI, "/v1/chat/completions", true, ""},
 		{"openai-vendor", openaiVendor, DialectOpenAI, "/v1/completions", false, "legacy completions is not a surface"},
 		{"openai-vendor", openaiVendor, DialectAnthropic, "/v1/messages", false, "nothing translates"},
+		{"openai-vendor", openaiVendor, DialectOpenAI, "/v1/embeddings", false, "a text vendor is held to what it gives, as an engine is"},
+
+		{"pooling-vendor", poolingVendor, DialectOpenAI, "/v1/embeddings", true, "the surface a vendor's embeddings answer on"},
+		{"pooling-vendor", poolingVendor, DialectOpenAI, "/v1/chat/completions", false, "a pooling model cannot chat; known before the dial"},
+		{"pooling-vendor", poolingVendor, DialectAnthropic, "/v1/messages", false, "nor on the other surface"},
+		{"unsaid-vendor", unsaidVendor, DialectOpenAI, "/v1/embeddings", true, "nothing declared = unrestricted, as for an engine"},
+		{"unsaid-vendor", unsaidVendor, DialectOpenAI, "/v1/rerank", false, "unrestricted in output, still a closed set of paths"},
 
 		{"blank-vendor", blankVendor, DialectOpenAI, "/v1/chat/completions", false, "a vendor row without a dialect serves nothing"},
 		{"blank-vendor", blankVendor, DialectAnthropic, "/v1/messages", false, ""},

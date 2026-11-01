@@ -175,10 +175,11 @@ malformed and the row serves nothing.
 A provider route is also **deny-by-default on the surface check**. `Serves` is generous to an engine
 because an engine answers on more than the OpenAI core (`/tokenize`, `/v1/rerank`), but a vendor is a
 closed set we already know, so `ServesRoute` holds it to its dialect's paths — `/v1/chat/completions`
-for `openai`, `/v1/messages` for `anthropic`. Anything else is our 404 at `routing.Pick`, above
-`meter`, instead of a round trip that comes back as theirs. The paths are one table,
-`vendorPaths` in `domain/dialect.go`, path → dialect: serving another (`/v1/responses` for
-`openai`, say) is a row there.
+and `/v1/embeddings` for `openai`, `/v1/messages` for `anthropic` — and, like an engine, to what its
+model gives (`output_modalities`: a chat model is not dialled for embeddings, nor an embedding model
+for chat). Anything else is our 404 at `routing.Pick`, above `meter`, instead of a round trip that
+comes back as theirs. The paths are one table, `vendorPaths` in `domain/dialect.go`, path → dialect:
+serving another (`/v1/responses` for `openai`, say) is a row there.
 
 The surface is not read off the path. Each base (`/openai`, `/anthropic`) strips its prefix before
 the chain runs, so below it `/openai/v1/chat/completions` and `/anthropic/v1/messages` are both
