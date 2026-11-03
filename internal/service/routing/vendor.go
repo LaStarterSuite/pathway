@@ -29,7 +29,8 @@ func (s *Service) pickVendor(req Request, table []domain.Route) (Decision, error
 // the next in the ring's order after the last request's. The cursor is per ring, and a vendor's ring
 // is the same on every model it serves, so its keys take even turns across models — the limits they
 // share are the vendor's. A session still changes key between requests, so a vendor's prompt cache
-// stays per credential; that is the strategy's known cost. Blank on an empty ring.
+// stays per credential, and per tenant within one (`cachekey`); the key change is the strategy's
+// known cost. Blank on an empty ring.
 func (s *Service) PickKey(keyring []domain.Credential) domain.Credential {
 	if len(keyring) == 0 {
 		return domain.Credential{}

@@ -247,6 +247,28 @@ func TestACacheSaltIsNamespacedByTheAuthenticatedTeam(t *testing.T) {
 	}
 }
 
+// The wiring behind the cachekey transform: the partition a vendor keys its prompt cache on is
+// the authenticated key's team, with the caller having sent nothing.
+func TestAVendorCacheKeyIsTheAuthenticatedTeam(t *testing.T) {
+	for vendor, field := range map[string]string{"openai": "prompt_cache_key", "deepseek": "user_id"} {
+		f := newFixture(t, jsonEngine(`{`+usageObject+`}`))
+		f.store.Groups["acme"] = domain.GroupRecord{Models: domain.ModelSet(vendor + "/chat")}
+		f.store.Routes[vendor+"/chat"] = []domain.Route{{
+			EngineURL: f.engine.URL, InternalKey: "vendor-key", Healthy: true,
+			Vendor: vendor, Kind: "provider", Dialect: "openai", UpstreamModel: "chat",
+		}}
+		f.post("/openai/v1/chat/completions", `{"model":"`+vendor+`/chat","messages":[]}`)
+
+		var body map[string]any
+		if err := json.Unmarshal(f.seen.body, &body); err != nil {
+			t.Fatalf("%s: upstream body: %v", vendor, err)
+		}
+		if body[field] != "test-team" {
+			t.Errorf("%s: %s = %v, want the tenant", vendor, field, body[field])
+		}
+	}
+}
+
 // An endpoint outside the transforms' gate must be forwarded byte-for-byte: a field one vLLM schema
 // accepts, another rejects.
 func TestAnUngatedEndpointIsForwardedUntouched(t *testing.T) {
