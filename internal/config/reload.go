@@ -80,6 +80,7 @@ func diff(previous, next Resolved) []string {
 	add("usage_spool", previous.UsageSpool != next.UsageSpool)
 	add("usage_spool_max_bytes", previous.UsageSpoolMaxBytes != next.UsageSpoolMaxBytes)
 	add("maintenance", previous.Maintenance != next.Maintenance)
+	add("isolate_caches", previous.IsolateCaches != next.IsolateCaches)
 	return changed
 }
 

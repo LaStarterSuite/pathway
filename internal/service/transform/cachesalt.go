@@ -1,42 +1,32 @@
 package transform
 
-import "encoding/json"
-
 func init() {
 	Register(cacheSalt{})
 }
 
-// cacheSalt namespaces a client-supplied vLLM cache_salt under the tenant, and strips it from
-// vendor hops. Opt-in on purpose (user call, 2026-08-31): no salt is added when the caller sent
-// none — unsalted tenants share the default prefix-cache namespace, trading isolation for
-// cross-tenant cache hits. What is NOT optional is the prefix on a salt that was sent: passed
-// through raw, one tenant could echo another's salt string and land inside their namespace.
+// cacheSalt pins an engine's prefix-cache namespace to the tenant: vLLM's and SGLang's cache_salt
+// becomes the team, or "<team>:<caller's salt>" when the caller sent one. Passed through raw, one
+// tenant could echo another's salt and land inside their namespace; sent by nobody, every tenant
+// on the box shares one. A vendor has no such field and a strict one 400s on unknowns, so a salt
+// is stripped from a vendor hop; a vendor's partition is cachekey's.
 type cacheSalt struct{}
 
 func (cacheSalt) Name() string { return "cachesalt" }
 
-// Every JSON path: the field rides whichever chat surface the caller used.
-func (cacheSalt) Endpoints() []string { return nil }
+// The two chat paths an engine reads the field on. An embeddings body gets none: vLLM logs every
+// field it ignores.
+func (cacheSalt) Endpoints() []string { return []string{"/v1/chat/completions", messages} }
 
 func (cacheSalt) Apply(ctx Context, body Body) (bool, error) {
-	raw, present := body["cache_salt"]
-	if !present {
-		return false, nil
-	}
-	// A vendor has no such field and a strict one 400s on unknowns; their cache is their own.
 	if ctx.Provider {
+		if _, present := body["cache_salt"]; !present {
+			return false, nil
+		}
 		delete(body, "cache_salt")
 		return true, nil
 	}
-	var salt string
-	if json.Unmarshal(raw, &salt) != nil || ctx.Team == "" {
-		// Not a string — the engine's schema error to give, not ours to guess around.
+	if ctx.Team == "" {
 		return false, nil
 	}
-	encoded, err := json.Marshal(ctx.Team + ":" + salt)
-	if err != nil {
-		return false, err
-	}
-	body["cache_salt"] = encoded
-	return true, nil
+	return namespaceKey(ctx.Team, body, "cache_salt")
 }

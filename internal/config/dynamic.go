@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"slices"
 	"strings"
 	"time"
 )
@@ -50,6 +51,25 @@ type Dynamic struct {
 	// Maintenance refuses new requests with a 503 while in-flight ones finish. In the file, not
 	// behind an endpoint, so a box restarted while in maintenance comes back still in it.
 	Maintenance bool `json:"maintenance"`
+
+	// IsolateCaches gives every tenant its own prompt-cache partition, at an engine (cachesalt)
+	// and at a vendor (cachekey), at the cost of cross-tenant cache hits. A bool rather than two
+	// names in Transforms: the control plane renders no list, since a list would freeze the order
+	// against a newer binary.
+	IsolateCaches bool `json:"isolate_caches"`
+}
+
+// cachePartitions are the transforms IsolateCaches appends, after the defaults and unless named.
+var cachePartitions = []string{"cachesalt", "cachekey"}
+
+func withCachePartitions(names []string) []string {
+	names = slices.Clone(names)
+	for _, name := range cachePartitions {
+		if !slices.Contains(names, name) {
+			names = append(names, name)
+		}
+	}
+	return names
 }
 
 // Resolved is Dynamic with every string parsed once, so the request path never parses a duration.
@@ -73,7 +93,8 @@ type Resolved struct {
 	UsageSpool         string
 	UsageSpoolMaxBytes int64
 
-	Maintenance bool
+	Maintenance   bool
+	IsolateCaches bool
 }
 
 // Defaults are what a box with no config file runs, and what any field the file omits falls back
@@ -154,6 +175,10 @@ func (d Dynamic) Resolve(base Resolved) (Resolved, error) {
 		out.UpstreamTLSVerify = *d.UpstreamTLSVerify
 	}
 	out.Maintenance = d.Maintenance
+	out.IsolateCaches = d.IsolateCaches
+	if out.IsolateCaches {
+		out.Transforms = withCachePartitions(out.Transforms)
+	}
 	return out, nil
 }
 

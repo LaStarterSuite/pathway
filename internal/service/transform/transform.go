@@ -21,7 +21,7 @@ type Context struct {
 	// UpstreamModel is what the chosen route says this upstream answers to, pushed by the control
 	// plane. Blank means send the caller's `model` unchanged, which is every route we run ourselves.
 	UpstreamModel string
-	// Team is the Grove Team this request is billed to — the tenant boundary cachesalt keys on.
+	// Team is the Grove Team this request is billed to — the tenant boundary cachesalt and cachekey key on.
 	Team string
 	// Provider is true when the hop leaves our network for a vendor.
 	Provider bool
@@ -75,9 +75,10 @@ func Registered() []string {
 	return names
 }
 
-// Default is what runs when nothing is configured. Order matters only in that a later transform
-// sees an earlier one's output.
-var Default = []string{"modelmap", "streamusage", "cachesalt", "servicetier", "vendorfields"}
+// Default is the chain the tests run: config.Defaults() with the two cache partitions that
+// isolate_caches appends, in that order. Order matters only in that a later transform sees an
+// earlier one's output.
+var Default = []string{"modelmap", "streamusage", "servicetier", "vendorfields", "cachesalt", "cachekey"}
 
 // Chain is an ordered, resolved set of transforms, replaceable in place under its own lock — the
 // middleware holds a pointer, and rebuilding the whole chain to change which rewrites run would be

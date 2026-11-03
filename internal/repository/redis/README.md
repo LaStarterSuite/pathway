@@ -149,7 +149,8 @@ cursor per ring in this process — a vendor's ring is the same on every model i
 share the turn across models, which is how the limits they share are drawn on evenly; two gateways
 each take even turns without agreeing on whose it is. `key_selection` is carried for the day there
 is a second strategy. A session still changes key between requests, so a vendor's prompt cache is
-per credential. The `retry` stage then walks on round the ring from the loser, on the key's own
+per credential, and per tenant within one (`cachekey`). The `retry` stage then walks on round the
+ring from the loser, on the key's own
 failures only: a **429** spends the key — each is tried once, then the rate-limited ones are opened
 once more, since a quota window may have slid — and a **401/402/403** retires it for the rest of the
 request. A provider row's 400 or 429 is read to its end (64 KiB) before it is classed, because an

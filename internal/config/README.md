@@ -42,11 +42,17 @@ Split by **lifetime**, and disjoint — nothing appears in both halves.
   "usage_retention": "72h",
   "usage_spool": "/var/lib/pathway/usage-spool.jsonl",
   "usage_spool_max_bytes": 1073741824,
-  "maintenance": false
+  "maintenance": false,
+  "isolate_caches": false
 }
 ```
 
 Every field is optional; an omitted one keeps its default, and a missing file is all defaults.
+
+`isolate_caches` gives every tenant its own prompt-cache partition, on an engine and at a vendor, by
+appending `cachesalt` and `cachekey` to `transforms` (see [transform](../service/transform/README.md)).
+A bool rather than the two names in the list: the control plane renders no list, since a list would
+freeze the order against a newer binary.
 
 **A rejected file changes nothing.** Bad JSON, an unknown key, a bad duration, or an unregistered
 middleware name → one error line and the running configuration is kept, applied whole or not at all.
