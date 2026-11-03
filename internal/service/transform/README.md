@@ -20,8 +20,7 @@ forwarded byte-for-byte rather than re-encoded.
 
 Registered is not running: a transform runs only while the `transforms` list names it, and the
 default list is `config.Defaults()`. Two are registered and off by default, the per-tenant cache
-partitions `cachesalt` and `cachekey`: name both in `transforms`, before `servicetier`, to turn
-them on together.
+partitions `cachesalt` and `cachekey`: the `isolate_caches` tunable appends both.
 
 **A dropped field is logged for you.** A transform that removes a field just deletes it; the chain
 compares what the caller sent with what is left and writes one Warn per user and field —
@@ -34,5 +33,5 @@ is not there. The name only, never the value. Top-level fields; a rewritten one 
 | `streamusage` | forces `stream_options.include_usage` on a streaming completion, and `continuous_usage_stats` beside it for an upstream the `vendor` package says takes it (our engines, Baseten) |
 | `servicetier` | drops a caller's `service_tier` on every hop, and says so in `X-Grove-Changed`: it picks the vendor's price class, which is never the caller's to choose |
 | `vendorfields` | on a vendor hop, sends the output cap under the one name that vendor reads, from the `vendor` package of where an upstream differs from the shape (see [The client interface](../vendor/README.md#the-client-interface)). Today the output cap: `max_completion_tokens` for OpenAI (400s on the old name), `max_tokens` for every other (they ignore the new one, uncapping output). Logged as a drop of the other name |
-| `cachesalt` | on an engine hop, sets vLLM's and SGLang's `cache_salt` to the tenant, the caller's own salt prefixed `<team>:` when one was sent; strips it from a vendor hop, whose partition is `cachekey`'s. Not in the default list |
-| `cachekey` | on a vendor hop, sets the vendor's prompt-cache partition to the tenant: `prompt_cache_key` at OpenAI, `user_id` at DeepSeek (`metadata.user_id` on `/v1/messages`), the caller's own value prefixed `<team>:` when one was sent. Anthropic has no such field, Baseten's affinity is a header, an engine of ours is `cachesalt`'s. Not in the default list |
+| `cachesalt` | on an engine hop, sets vLLM's and SGLang's `cache_salt` to the tenant, the caller's own salt prefixed `<team>:` when one was sent; strips it from a vendor hop, whose partition is `cachekey`'s. On with `isolate_caches` |
+| `cachekey` | on a vendor hop, sets the vendor's prompt-cache partition to the tenant: `prompt_cache_key` at OpenAI, `user_id` at DeepSeek (`metadata.user_id` on `/v1/messages`), the caller's own value prefixed `<team>:` when one was sent. Anthropic has no such field, Baseten's affinity is a header, an engine of ours is `cachesalt`'s. On with `isolate_caches` |

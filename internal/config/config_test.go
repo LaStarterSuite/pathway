@@ -225,6 +225,34 @@ func TestAnAbsentListKeepsTheDefault(t *testing.T) {
 	}
 }
 
+// isolate_caches is how the control plane turns the cache partitions on without naming the list;
+// a name already in the list is not run twice, and off is the default list again.
+func TestIsolateCachesAppendsTheCachePartitions(t *testing.T) {
+	path := write(t, `{"isolate_caches":true}`)
+	live, err := Open(path, Defaults(), quiet())
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := append(slices.Clone(Defaults().Transforms), "cachesalt", "cachekey")
+	if got := live.Get().Transforms; !SameList(got, want) {
+		t.Errorf("transforms = %v, want %v", got, want)
+	}
+
+	if err := os.WriteFile(path, []byte(`{"isolate_caches":true,"transforms":["cachekey","modelmap"]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, next, _, err := live.Reload(); err != nil || !SameList(next.Transforms, []string{"cachekey", "modelmap", "cachesalt"}) {
+		t.Errorf("transforms = %v, err = %v, want cachesalt appended once", next.Transforms, err)
+	}
+
+	if err := os.WriteFile(path, []byte(`{}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, next, changed, err := live.Reload(); err != nil || !SameList(next.Transforms, Defaults().Transforms) || !slices.Contains(changed, "isolate_caches") {
+		t.Errorf("transforms = %v, changed = %v, err = %v, want the default list back", next.Transforms, changed, err)
+	}
+}
+
 // Grove renders no transform list, so this default is what every box runs.
 func TestAnUnconfiguredBoxDropsTheServiceTier(t *testing.T) {
 	if !slices.Contains(Defaults().Transforms, "servicetier") {
@@ -241,6 +269,7 @@ func sameResolved(a, b Resolved) bool {
 		a.UpstreamReadTimeout == b.UpstreamReadTimeout &&
 		a.UpstreamTLSVerify == b.UpstreamTLSVerify &&
 		a.Maintenance == b.Maintenance &&
+		a.IsolateCaches == b.IsolateCaches &&
 		a.DrainTimeout == b.DrainTimeout &&
 		a.LameDuck == b.LameDuck &&
 		a.UpgradeTimeout == b.UpgradeTimeout &&
