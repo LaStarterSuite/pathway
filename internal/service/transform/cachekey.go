@@ -33,8 +33,8 @@ func (cacheKey) Apply(ctx Context, body Body) (bool, error) {
 }
 
 // namespaceKey sets body[field] to the team, or to the team-prefixed form of the string the caller
-// sent. A non-string, or a value the prefix pushes past DeepSeek's 512 bytes, is the vendor's
-// schema error to give, not ours to guess around.
+// sent. A non-string, or a value the prefix pushes past a length cap (DeepSeek's 512 bytes, vLLM's
+// 1024), is the upstream's schema error to give, not ours to guess around.
 func namespaceKey(team string, body Body, field string) (bool, error) {
 	value := team
 	if raw, present := body[field]; present {

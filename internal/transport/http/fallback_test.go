@@ -156,7 +156,7 @@ func TestARequestsOwnFaultIsNotMoved(t *testing.T) {
 }
 
 // A model that answers is sent the client's body without the gateway's own field, and a request
-// naming no fallbacks is forwarded byte for byte.
+// naming no fallbacks carries nothing of the gateway's but the tenant's cache_salt.
 func TestFallbacksNeverReachAnUpstream(t *testing.T) {
 	f, backup := fallbackFixture(t, jsonEngine(`{`+usageObject+`}`))
 	access := captureAccess(t, f)
@@ -174,10 +174,9 @@ func TestFallbacksNeverReachAnUpstream(t *testing.T) {
 		t.Errorf("backup was dialled though the primary answered: %q", backup.bodies)
 	}
 
-	plain := `{"model":"qwen3-4b",  "messages":[]}`
-	f.post("/openai/v1/chat/completions", plain)
-	if string(f.seen.body) != plain {
-		t.Errorf("body = %s, want the client's bytes", f.seen.body)
+	f.post("/openai/v1/chat/completions", `{"model":"qwen3-4b",  "messages":[]}`)
+	if want := `{"cache_salt":"test-team","messages":[],"model":"qwen3-4b"}`; string(f.seen.body) != want {
+		t.Errorf("body = %s, want %s", f.seen.body, want)
 	}
 }
 

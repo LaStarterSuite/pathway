@@ -220,15 +220,15 @@ func TestTheBodyReachesTheEngineTransformed(t *testing.T) {
 	}
 }
 
-// Nothing rewrites a non-streaming body any more, so it reaches the engine exactly as sent —
-// including a `priority` the client chose. Engines run fcfs, which ignores it.
-func TestANonStreamingBodyIsForwardedUnchanged(t *testing.T) {
+// A non-streaming body reaches the engine as sent plus the tenant's cache_salt — including a
+// `priority` the client chose. Engines run fcfs, which ignores it.
+func TestANonStreamingBodyIsForwardedWithOnlyItsSalt(t *testing.T) {
 	f := newFixture(t, jsonEngine(`{`+usageObject+`}`))
-	sent := `{"model":"qwen3-4b","messages":[],"priority":-999}`
-	f.post("/openai/v1/chat/completions", sent)
+	f.post("/openai/v1/chat/completions", `{"model":"qwen3-4b","messages":[],"priority":-999}`)
 
-	if string(f.seen.body) != sent {
-		t.Errorf("engine body = %s, want it byte-for-byte as sent", f.seen.body)
+	want := `{"cache_salt":"test-team","messages":[],"model":"qwen3-4b","priority":-999}`
+	if string(f.seen.body) != want {
+		t.Errorf("engine body = %s, want %s", f.seen.body, want)
 	}
 }
 
@@ -244,6 +244,14 @@ func TestACacheSaltIsNamespacedByTheAuthenticatedTeam(t *testing.T) {
 	}
 	if body["cache_salt"] != "test-team:team-a" {
 		t.Errorf("cache_salt = %v, want the tenant-prefixed form", body["cache_salt"])
+	}
+
+	f.post("/openai/v1/chat/completions", `{"model":"qwen3-4b","messages":[]}`)
+	if err := json.Unmarshal(f.seen.body, &body); err != nil {
+		t.Fatalf("engine body: %v", err)
+	}
+	if body["cache_salt"] != "test-team" {
+		t.Errorf("cache_salt = %v, want the tenant", body["cache_salt"])
 	}
 }
 

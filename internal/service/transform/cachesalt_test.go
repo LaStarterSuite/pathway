@@ -27,15 +27,21 @@ func TestAProvidedSaltIsNamespacedUnderTheTenant(t *testing.T) {
 	}
 }
 
-// Opt-in by user call: no salt means no salt — the shared namespace is the recorded trade.
-func TestNoSaltIsNeverInvented(t *testing.T) {
+// Sent by nobody, every tenant on the box would share one prefix-cache namespace.
+func TestNoSaltMeansTheTenantsSalt(t *testing.T) {
 	body := saltBody(t, `{"model":"m"}`)
 	changed, _ := cacheSalt{}.Apply(Context{Team: "test-team"}, body)
-	if changed {
-		t.Error("a salt was added to a request that sent none")
+	if !changed || string(body["cache_salt"]) != `"test-team"` {
+		t.Errorf("cache_salt = %s, changed = %v", body["cache_salt"], changed)
 	}
-	if _, present := body["cache_salt"]; present {
-		t.Error("cache_salt appeared from nowhere")
+}
+
+// Nothing to prefix with: a request no team governs goes as sent.
+func TestNoTeamMeansNoSalt(t *testing.T) {
+	body := saltBody(t, `{"model":"m"}`)
+	changed, _ := cacheSalt{}.Apply(Context{}, body)
+	if _, present := body["cache_salt"]; changed || present {
+		t.Errorf("cache_salt = %s, changed = %v", body["cache_salt"], changed)
 	}
 }
 
