@@ -75,8 +75,9 @@ func Registered() []string {
 	return names
 }
 
-// Default is what runs when nothing is configured. Order matters only in that a later transform
-// sees an earlier one's output.
+// Default is the chain the tests run: every transform, the opt-in ones included. What a box runs
+// with no config file is config.Defaults(). Order matters only in that a later transform sees an
+// earlier one's output.
 var Default = []string{"modelmap", "streamusage", "cachesalt", "cachekey", "servicetier", "vendorfields"}
 
 // Chain is an ordered, resolved set of transforms, replaceable in place under its own lock — the

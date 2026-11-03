@@ -30,7 +30,7 @@ Split by **lifetime**, and disjoint — nothing appears in both halves.
   "log_level": "info",
   "middleware": ["recover", "accesslog", "drain", "auth", "quota", "body", "modelaccess",
                  "payloadlog", "route", "meter", "fallback", "retry", "transform", "upstreamauth"],
-  "transforms": ["modelmap", "streamusage", "cachesalt", "cachekey", "servicetier", "vendorfields"],
+  "transforms": ["modelmap", "streamusage", "servicetier", "vendorfields"],
   "synthetic_session_ttl": "0s",
   "capacity_wait": "0s",
   "max_body_bytes": 33554432,
