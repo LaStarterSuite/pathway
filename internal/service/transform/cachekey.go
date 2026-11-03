@@ -1,6 +1,6 @@
 package transform
 
-import "encoding/json"
+import "github.com/frappe/pathway/internal/domain"
 
 func init() {
 	Register(cacheKey{})
@@ -39,12 +39,12 @@ func namespaceKey(team string, body Body, field string) (bool, error) {
 	value := team
 	if raw, present := body[field]; present {
 		var sent string
-		if json.Unmarshal(raw, &sent) != nil {
+		if domain.JSON.Unmarshal(raw, &sent) != nil {
 			return false, nil
 		}
 		value = team + ":" + sent
 	}
-	encoded, err := json.Marshal(value)
+	encoded, err := domain.JSON.Marshal(value)
 	if err != nil {
 		return false, err
 	}
@@ -58,7 +58,7 @@ func namespaceKey(team string, body Body, field string) (bool, error) {
 func namespaceMetadataKey(team string, body Body) (bool, error) {
 	metadata := Body{}
 	if raw, present := body["metadata"]; present {
-		if json.Unmarshal(raw, &metadata) != nil {
+		if domain.JSON.Unmarshal(raw, &metadata) != nil {
 			return false, nil
 		}
 		if metadata == nil {
@@ -68,7 +68,7 @@ func namespaceMetadataKey(team string, body Body) (bool, error) {
 	if changed, err := namespaceKey(team, metadata, "user_id"); !changed || err != nil {
 		return changed, err
 	}
-	encoded, err := json.Marshal(metadata)
+	encoded, err := domain.JSON.Marshal(metadata)
 	if err != nil {
 		return false, err
 	}
