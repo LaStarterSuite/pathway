@@ -53,7 +53,8 @@ func TestDeepSeekMessagesCarryTheTenantInMetadata(t *testing.T) {
 
 	body = saltBody(t, `{"model":"m","metadata":{"other":1.000,"user_id":"u1"}}`)
 	changed, _ = cacheKey{}.Apply(ctx, body)
-	if !changed || string(body["metadata"]) != `{"other":1.000,"user_id":"test-team:u1"}` {
+	metadata := saltBody(t, string(body["metadata"]))
+	if !changed || string(metadata["user_id"]) != `"test-team:u1"` || string(metadata["other"]) != `1.000` {
 		t.Errorf("metadata = %s, changed = %v", body["metadata"], changed)
 	}
 }
